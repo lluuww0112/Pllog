@@ -57,7 +57,7 @@ vec_base = np.array([sample for batch in vec_base for sample in batch])
 emb_dim = EMB_DIM
 vector_path = os.path.join(os.path.dirname(__file__), "vector.index")
 # add data to base
-index = faiss.IndexFlatL2(EMB_DIM)
+index = faiss.IndexFlatIP(EMB_DIM)
 index.add(vec_base)
 
 # Load pre-saved data --> in real on-service
@@ -67,7 +67,6 @@ index.add(vec_base)
 # query = np.random.randn((768,)).astype("float32")
 # top_k = 5
 # distance, indices = index.search(query, top_k)
-
 
 
 class model:

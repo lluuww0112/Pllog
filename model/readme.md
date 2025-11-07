@@ -17,7 +17,7 @@
 
 # How to use
 
-## 1. dataloader setting
+## 1. model train
 
 ```python
 from model_train import Train
@@ -39,55 +39,29 @@ loss_history = trainner.full_train(
 plt.plot(loss_history)
 ```
 
-
-## 2. trainning
-```python
-
-from model import DiaryEncoder, LyricEncoder
-from model_train import Train
-
-# 모델 불러오기
-diary_encoder = DiaryEncoder()
-lyric_encoder = LyricEncoder()
-
-# trainner 선언
-trainner = Train(
-    diary_encoder = diary_encoder,
-    lyric_encoder = lyric_encoder,
-    dataloader = dataloader
-)
-
-# model train
-trainner.full_train(
-    diary_encoder_name="diary_encoder",
-    lyric_encoder_name="lyric_encoder",
-)
-
-```
-
-## 3. configure parameter
+## 2. configure parameter
 ```json
 {
-    "EMB_DIM" : 768, // hidden 차원
-    "FFN_DIM" : 3072, // transformer FFN 차원
-    "SENTIMENT_CLASSES" : 5, // 감정 라벨 수
+  "EMB_DIM": 384,
+  "FFN_DIM": 1534,
+  "SENTIMENT_CLASSES": 5,
 
-    "DIARY_SENTIMENT_ENCODER" : "BERT-base-multilingual-cased", // pretrained model for sentiment encoder
-    "DIARY_ABSTRACT_ENCODER" : "BERT-base-multilingual-cased", // pretrained model for abstract encoder
-    "LYRIC_ENCODER" : "BERT-base-multilingual-cased", // pretrained model for abstract encoder
-    "TOKENIZER" : "BERT-base-multilingual-cased", // tokenizer 
+  "DIARY_SENTIMENT_ENCODER": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "DIARY_ABSTRACT_ENCODER": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "LYRIC_ENCODER": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 
-    "SENTIMENT_ABSTRACT_LATENET_TRANSFORMER_LAYER_NUM" : 5, // latent encoder layer num
-    "SENTIMENT_ABSTRACT_LATENET_TRANSFORMER_HEADER_NUM" : 6, // latent encoder header num
-    "DROPOUT" : 0.1, // global dropout
+  "SENTIMENT_ABSTRACT_LATENET_TRANSFORMER_LAYER_NUM": 5,
+  "SENTIMENT_ABSTRACT_LATENET_TRANSFORMER_HEADER_NUM": 6,
+  "DROPOUT": 0.1,
 
-    "OPTIMIZER" : "adam", // optimizer, choose one in adam, adamw, sgd, rmsprop
-    "LEARNING_RATE" : 1e-5, // learning rate
-    "EPOCHS" : 20, // epochs
-    "WARMUP_STEPS_RATE" : 0.1, // warmup steps rate
-    "DTYPE" : "bf16", // choose one in bf16, fp116, fp32
-    "CL_TEMPERATURE" : 0.7 // contrastive temperature
+  "OPTIMIZER": "adamw",
+  "LEARNING_RATE": 1e-4,
+  "EPOCHS": 100,
+  "BATCHH_SIZE": 64,
+  "WARMUP_STEPS_RATE": 0.1,
+  "DTYPE": "bf16",
+  "CL_TEMPERATURE": 0.7,
+
+  "DEVICE" : "cuda"
 }
-
-
 ```

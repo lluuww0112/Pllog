@@ -12,7 +12,7 @@
 ```
 
 # Model Arch
-![Image](https://github.com/user-attachments/assets/1681c07a-c4cd-4e6d-989f-1d10e0f2250a)
+![Image](https://github.com/user-attachments/assets/f9941193-f234-48e8-9582-331ffc8527ff)
 
 
 # How to use

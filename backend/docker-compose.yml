@@ -1,0 +1,67 @@
+services:
+  RProxy:
+    image: "nginx:latest"
+    depends_on:
+      - diaryServer
+    ports:
+      - "80:80"
+    restart: always
+    volumes:
+      - "./RProxy/nginx.conf:/etc/nginx/nginx.conf"
+      - "./UI/dist:/var/www/ui"
+    container_name: "RProxy"
+
+  # db
+  DB:
+    image: "mysql"
+    restart: always
+    volumes:
+      - "./DB/conf.d:/etc/mysql/conf.d"
+      - "./DB/mysql:/var/lib/mysql" # db 저장 내용 볼륨 유지
+
+      # 트리거를 정의하는 경우 다음을 사용
+      # - "./db/structure:/docker-entrypoint-initdb.d"
+    env_file:
+      - DB/.env
+    container_name: DB
+
+  server_base:
+    build:
+      context: .
+      dockerfile: ./template/Dockerfile
+    container_name: build_only
+    image: server_base
+    command: ["true"]
+  
+  # 다이어리 서버
+  diaryServer:
+    container_name: diaryServer
+    image: diary_server
+    build:
+      context: .
+      dockerfile: ./diaryServer/Dockerfile
+    env_file:
+      - ./template/.env
+      - ./diaryServer/.env
+    depends_on:
+      - DB
+      - server_base
+    command: ["./command.sh"] # wait-for-it 이후 db초기화 스크립트 실행, 이후 gunicorn을 통해 플라스크 실행
+    # restart: always
+
+  # 다이어리 서버
+  modelServer:
+    container_name: modelServer
+    image: model_server
+    build:
+      context: .
+      dockerfile: ./modelServer/Dockerfile
+    env_file:
+      - ./template/.env
+      - ./modelServer/.env
+    depends_on:
+      - DB
+      - server_base
+      - diaryServer
+    command: ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app", "--timeout", "500"]
+    # restart: always

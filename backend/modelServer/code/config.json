@@ -1,0 +1,23 @@
+{
+  "EMB_DIM": 384,
+  "FFN_DIM": 1534,
+  "SENTIMENT_CLASSES": 5,
+
+  "DIARY_SENTIMENT_ENCODER": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "DIARY_ABSTRACT_ENCODER": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "LYRIC_ENCODER": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+
+  "SENTIMENT_ABSTRACT_LATENET_TRANSFORMER_LAYER_NUM": 8,
+  "SENTIMENT_ABSTRACT_LATENET_TRANSFORMER_HEADER_NUM": 6,
+  "DROPOUT": 0.1,
+
+  "OPTIMIZER": "adamw",
+  "LEARNING_RATE": 1e-4,
+  "EPOCHS": 100,
+  "BATCHH_SIZE": 64,
+  "WARMUP_STEPS_RATE": 0.1,
+  "DTYPE": "bf16",
+  "CL_TEMPERATURE": 0.7,
+
+  "DEVICE" : "cuda"
+}

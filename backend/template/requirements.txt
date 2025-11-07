@@ -1,0 +1,15 @@
+Flask
+flask-cors
+sqlalchemy
+pymysql
+cryptography 
+PyJWT
+gunicorn
+uuid
+requests
+python-dateutil
+torch
+faiss-cpu==1.8.0.post1
+transformers
+numpy
+pandas

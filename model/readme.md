@@ -20,29 +20,23 @@
 ## 1. dataloader setting
 
 ```python
-from dataload import Diary_Lyric_dataset
-from torch.utils.data import Dataloader
+from model_train import Train
+from model import DiaryEncoder, LyricEncder
+from dataload import DiaryLyricData
+import matplotlib.pyplot as plt
 
 
-diary # 일기 텍스트 원본 리스트
-sentiment # 일기에 대한 감정 라벨
-lyric # 가사 원본 리스트
+diaryEncoder = DiaryEncoder()
+lyricEncoder = LyricEncder()
 
-
-# 데이터 셋 정의
-dataset = Diary_Lyric_dataset(
-    diary=diary,
-    lyric=lyric,
-    sentiment=sentiment
+trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData) # load trainner
+loss_history = trainner.full_train(
+    diary_encoder_name="diaryEncoder", # .pth file save name
+    lyric_encoder_name="lyricEncoder", # .pth file save name
+    warmup_steps_rate=0.1 # warmup_ratio
 )
 
-# 데이터 로더 정의
-dataloader = Dataloader(
-    dataset=dataset,
-    batch_size=16,
-    shuffle=True
-)
-
+plt.plot(loss_history)
 ```
 
 

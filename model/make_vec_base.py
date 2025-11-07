@@ -28,19 +28,26 @@ result = []
 model.to(device)
 model.eval()
 
-for batch in dataloader:
-    x = batch["lyric"]
-    with torch.no_grad():
-        encoded = model.encode(x)    # shape: (batch, emb_dim)
+# for batch in dataloader:
+#     x = batch["lyric"]
+#     with torch.no_grad():
+#         encoded = model.encode(x)    # shape: (batch, emb_dim)
     
-    encoded = encoded.to("cpu")      # GPU 텐서는 CPU로 이동
+#     encoded = encoded.to("cpu")      # GPU 텐서는 CPU로 이동
+#     result.append(encoded)
+
+for idx in range(len(DiaryLyricData)):
+    lyric = DiaryLyricData[idx]["lyric"]
+    with torch.no_grad():
+        encoded = model.encode(lyric)
+    encoded = encoded.to("cpu")
     result.append(encoded)
 
 # (sample_num, emb_dim) 형태로 합치기
-result_tensor = torch.cat(result, dim=0)  # ✅ 최종 2차원 텐서
+result_tensor = torch.cat(result, dim=0) 
 
 # save lyricVector
 with open("./vec_index.pkl", "wb") as f:
     pickle.dump(result_tensor.tolist() , f)
 
-print("lyric encoded vector 저장 완료", result_tensor.tolist())
+print("lyric encoded vector 저장 완료", result_tensor.shape)

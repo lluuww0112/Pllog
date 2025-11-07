@@ -11,6 +11,9 @@
 # from datetime import datetime, timedelta
 # from zoneinfo import ZoneInfo
 # import json
+
+import torch
+import torch.nn.functional as F
 import numpy as np
 import os
 import pickle
@@ -51,8 +54,7 @@ _vec_base_path = os.path.join(_base_dir, "data", "vec_index.pkl")
 with open(_vec_base_path, "rb") as f:
     vec_base = pickle.load(f)
 
-vec_base = np.array([sample for batch in vec_base for sample in batch])
-
+vec_base = torch.Tensor(vec_base)
 
 emb_dim = EMB_DIM
 vector_path = os.path.join(os.path.dirname(__file__), "vector.index")
@@ -82,10 +84,16 @@ class model:
 
 
 class VectorBase:
-    def search_vector(vector : np.array, top_k : int = 5):
-        vector = vector.reshape(1, -1) 
-        _, indices = index.search(vector, top_k) # distances, indexes
-        return indices + 1 # mysql의 auto increment는 1부터 시작이기 때문에 여기서 인덱스를 통일
+    def search_vector(vector : torch.Tensor, top_k : int = 5):
+        vector = vector.view(1, -1)
+        sim_mat = F.cosine_similarity(vec_base, vector).view(-1, 1)
+        _, idx = torch.topk(sim_mat, dim=0, k=top_k)
+        idx = (idx.squeeze() + 1).tolist()
+        print(idx)
+        
+        # _, indices = index.search(vector, top_k) # distances, indexes
+        # return indices + 1 # mysql의 auto increment는 1부터 시작이기 때문에 여기서 인덱스를 통일
+        return idx
 
     def add_vector(vectors : np.array):
         try:

@@ -39,7 +39,7 @@ def getRecommend():
 
     # model inference
     emotion, norm_diary_cls = interface.model.get_diary_cls(text)
-    norm_diary_cls = norm_diary_cls.detach().numpy() 
+    norm_diary_cls = norm_diary_cls.detach()
 
     # search index
     indices = interface.VectorBase.search_vector(norm_diary_cls)
@@ -48,7 +48,7 @@ def getRecommend():
     return jsonify({
         "status" : 1,
         "emotion" :  emotion[0],
-        "indices" : indices.tolist()[0]
+        "indices" : indices
     })
 
 

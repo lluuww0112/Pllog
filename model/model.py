@@ -69,7 +69,7 @@ class DiaryEncoder(nn.Module):
         ])
 
 
-        # latent encoder
+        # latent encoder (cross Attn)
         layers = nn.TransformerDecoderLayer(
             d_model=emb_dim,
             nhead=latent_header_num,

@@ -70,29 +70,18 @@ class DiaryEncoder(nn.Module):
 
 
         # latent encoder
-        # layers = nn.TransformerEncoderLayer(
-        #     d_model=emb_dim,
-        #     nhead=latent_header_num,
-        #     dim_feedforward=ffn_dim,
-        #     dropout=dropout,
-        #     batch_first=True
-        # )
-        # self.latent_encoder = nn.TransformerEncoder(
-        #     encoder_layer=layers,
-        #     num_layers=latent_layer_num
-        # )
-        layers = nn.TransformerDecoderLayer(
+        layers = nn.TransformerEncoderLayer(
             d_model=emb_dim,
             nhead=latent_header_num,
             dim_feedforward=ffn_dim,
             dropout=dropout,
             batch_first=True
         )
-        self.latent_encoder = nn.TransformerDecoder(
-            decoder_layer=layers,
+        self.latent_encoder = nn.TransformerEncoder(
+            encoder_layer=layers,
             num_layers=latent_layer_num
         )
-
+        
         # latent header
         self.latent_header = nn.Sequential(*[
             nn.Linear(in_features=emb_dim, out_features=emb_dim, bias=True),
@@ -134,14 +123,11 @@ class DiaryEncoder(nn.Module):
         abstract_output = self.diary_abstract_encoder.forward(abstract_input)[0] # shape (batch, 1, emb_dim)
 
         # concat [setiment_cls, abstract_hidden]
-        # latent_encoder_input = torch.cat([sentiment_cls, abstract_output], dim=1) # shape (batch, seq_len + 1, emb_dim)
+        latent_encoder_input = torch.cat([sentiment_cls, abstract_output], dim=1) # shape (batch, seq_len + 1, emb_dim)
         
         # latent forwarding
-        # final_output = self.latent_encoder(latent_encoder_input)  # shape (batch, seq_len + 1, emb_dim)
-        # final_cls = self.latent_header(final_output[:, 0, :])
-
-        final_output = self.latent_encoder(abstract_output, sentiment_cls)
-        final_cls = self.latent_header(final_output[:,0,:])
+        final_output = self.latent_encoder(latent_encoder_input)  # shape (batch, seq_len + 1, emb_dim)
+        final_cls = self.latent_header(final_output[:, 0, :])
 
         sentiment_logit = sentiment_header_logit.squeeze()
         diary_cls = final_cls.squeeze()

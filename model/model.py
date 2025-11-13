@@ -122,13 +122,7 @@ class DiaryEncoder(nn.Module):
         # abstract forwarding
         abstract_output = self.diary_abstract_encoder.forward(abstract_input)[0] # shape (batch, 1, emb_dim)
 
-        # concat [setiment_cls, abstract_hidden]
-        # latent_encoder_input = torch.cat([sentiment_cls, abstract_output], dim=1) # shape (batch, seq_len + 1, emb_dim)
-        
         # latent forwarding
-        # final_output = self.latent_encoder(latent_encoder_input)  # shape (batch, seq_len + 1, emb_dim)
-        # final_cls = self.latent_header(final_output[:, 0, :])
-
         final_output = self.latent_encoder(abstract_output, sentiment_cls)
         final_cls = self.latent_header(final_output[:,0,:])
 

@@ -298,8 +298,8 @@ if __name__ == "__main__":
 
     trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData)
     loss_history = trainner.full_train(
-        diary_encoder_name="diaryEncoder",
-        lyric_encoder_name="lyricEncoder",
+        diary_encoder_name="Cross_diaryEncoder",
+        lyric_encoder_name="Cross_lyricEncoder",
     )
 
     df = pd.DataFrame(np.array(loss_history))

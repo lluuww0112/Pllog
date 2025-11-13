@@ -18,6 +18,72 @@ from model import DiaryEncoder, LyricEncder
 from dataload import DiaryLyricData
 
 
+
+
+# 각 pair의 벡터가 얼마자 잘 정렬(가깝게)되어 있는가?
+def align_loss(x, y, alpha=2): 
+    """
+        bsz : batch size (number of positive pairs)
+        d   : latent dim
+        x   : Tensor, shape=[bsz, d]
+            latents for one side of positive pairs
+        y   : Tensor, shape=[bsz, d]
+            latents for the other side of positive pairs
+    """
+    return (x - y).norm(p=2, dim=1).pow(alpha).mean()
+
+
+# L_uniform = uniform_loss(x) + uniform_loss(y)
+# 두 인코더 각각의 출력 벡터 집합에 대해서 uniformnity를 측정후 더하면 됨
+def uniform_loss(x, t=2): 
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+
+
+# 실제 추천결과 top5에 실제 정답이 몇 등에 위치하는지를 기반으로한 평가 지표
+# topk = [1, 5, 10]에 대해서 본 함수는 구현되어 있음
+# 실제 적용시에는 1, 5, 10에 대한 평균을 사용할 것
+def calculate_recall(A: torch.Tensor, B: torch.Tensor, k_values: list = [1, 5, 10]):
+    """
+    두 벡터 집합 A, B 간의 Recall@K를 계산합니다.
+    A[i]와 B[i]가 서로 대응되는 positive pair라고 가정합니다.
+
+    Args:
+        A (torch.Tensor): 쿼리 벡터 텐서 (N, embedding_dim)
+        B (torch.Tensor): 후보 벡터 텐서 (N, embedding_dim)
+        k_values (list): R@K를 계산할 K값들의 리스트
+
+    Returns:
+        dict: K값별 Recall 점수를 담은 딕셔너리 (예: {"R@1": 0.5, "R@5": 0.8})
+    """
+    
+    N = A.size(0)
+    if N != B.size(0):
+        raise ValueError("A와 B의 샘플 개수(N)가 일치해야 합니다.")
+
+    # 1. 코사인 유사도 계산을 위해 벡터 정규화
+    A_norm = F.normalize(A, p=2, dim=1)
+    B_norm = F.normalize(B, p=2, dim=1)
+
+    
+    sim_matrix = torch.matmul(A_norm, B_norm.T) # 2. (N, N) 크기의 전체 유사도 행렬 계산
+    sorted_indices = torch.argsort(sim_matrix, dim=1, descending=True) # 3. 각 쿼리(A[i])별로 후보(B)들의 유사도 순위 매기기
+    ground_truth = torch.arange(N, device=A.device).view(-1, 1) # 4. 정답(Ground Truth) 생성
+    ranks = (sorted_indices == ground_truth).nonzero(as_tuple=True)[1] # 5. 각 쿼리(A[i])에 대해 정답(B[i])이 몇 등인지(rank) 계산
+
+    # 6. K 값들에 대해 Recall@K 계산
+    recalls = {}
+    for k in k_values:
+        # 랭크가 k보다 작은 경우 (0-indexed이므로 R@1은 rank < 1)
+        correct_at_k = (ranks < k).sum().item()
+        
+        # (정답 수 / 전체 쿼리 수)
+        recalls[f"R@{k}"] = correct_at_k / N
+
+    return recalls
+
+
+
+
 with open("config.json", "r") as file:
     config = json.load(file)
 

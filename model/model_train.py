@@ -52,7 +52,7 @@ def calculate_recall(A: torch.Tensor, B: torch.Tensor, k_values: list = [1, 5, 1
         k_values (list): R@K를 계산할 K값들의 리스트
 
     Returns:
-        dict: K값별 Recall 점수를 담은 딕셔너리 (예: {"R@1": 0.5, "R@5": 0.8})
+        dict: K값별 Recall 점수를 담은 리스트 (예: [0.5, 0.7, 0.8] 순서대로 R@1, R@5, R@10을 의미)
     """
     
     N = A.size(0)
@@ -78,8 +78,7 @@ def calculate_recall(A: torch.Tensor, B: torch.Tensor, k_values: list = [1, 5, 1
         # (정답 수 / 전체 쿼리 수)
         recalls[f"R@{k}"] = correct_at_k / N
 
-    return recalls
-
+    return [score for k, score in recalls.items()]
 
 
 with open("config.json", "r") as file:
@@ -349,9 +348,12 @@ class Train:
             self.diary_encoder.eval()
             self.lyric_encoder.eval()
 
+            diaries = list(DiaryLyricData[:]["diary"])
+            lyrics = list(DiaryLyricData[:]["lyric"])
+            
             with torch.no_grad():
-                diary_norm_vec = self.diary_encoder.encode()
-                lyric_norm_vec = self.lyric_encoder.encode()
+                _, diary_norm_vec = self.diary_encoder.encode(diaries)
+                lyric_norm_vec = self.lyric_encoder.encode(lyrics)
 
                 recalls = calculate_recall(diary_norm_vec, lyric_norm_vec)
                 alignment = align_loss(diary_norm_vec, lyric_norm_vec)
@@ -366,8 +368,6 @@ class Train:
             loss_history.append(mean_loss.item())
             print(f"Epoch {epoch + 1} / {self.epochs} Loss : {mean_loss}")
 
-            
-
 
         print("Train Completed")
         torch.save(self.diary_encoder, f"./model_save/{diary_encoder_name}.pth")
@@ -380,7 +380,6 @@ class Train:
             "alignment" : alignment_history,
             "uniformnity" : uniformnity_history
         }
-    
 
 
 if __name__ == "__main__":
@@ -396,7 +395,6 @@ if __name__ == "__main__":
         diary_encoder_name=diaryName,
         lyric_encoder_name=lyricName,
     )
-
 
     loss_history = np.array(history["loss"]).reshape(-1, 1)
     recall_history = np.array(history["recall"]).reshape(-1, 3)

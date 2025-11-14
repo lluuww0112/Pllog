@@ -129,8 +129,8 @@ class DiaryEncoder(nn.Module):
         final_output = self.latent_encoder(latent_encoder_input)  # shape (batch, seq_len + 1, emb_dim)
         final_cls = self.latent_header(final_output[:, 0, :])
 
-        sentiment_logit = sentiment_header_logit.squeeze()
-        diary_cls = final_cls.squeeze()
+        sentiment_logit = sentiment_header_logit.squeeze(1)
+        diary_cls = final_cls
 
         return sentiment_logit, diary_cls
     

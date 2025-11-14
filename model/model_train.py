@@ -375,10 +375,10 @@ class Train:
         print("Model saved")
 
         return {
-            "loss_history" : loss_history,
-            "recall_history" : recall_history,
-            "alignment_history" : alignment_history,
-            "uniformnity_history" : uniformnity_history
+            "loss" : loss_history,
+            "recall" : recall_history,
+            "alignment" : alignment_history,
+            "uniformnity" : uniformnity_history
         }
     
 
@@ -387,14 +387,24 @@ if __name__ == "__main__":
     diaryEncoder = DiaryEncoder()
     lyricEncoder = LyricEncder()
 
+    mode = "Attn"
     diaryName = "diaryEncoder"
     lyricName = "lyricEncoder"
 
     trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData)
     history = trainner.full_train(
-        diary_encoder_name="diaryEncoder",
-        lyric_encoder_name="lyricEncoder",
+        diary_encoder_name=diaryName,
+        lyric_encoder_name=lyricName,
     )
 
-    df = pd.DataFrame(np.array(loss_history))
-    df.to_csv("history.csv")
+
+    loss_history = np.array(history["loss"]).reshape(-1, 1)
+    recall_history = np.array(history["recall"]).reshape(-1, 3)
+    alignment_history = np.array(history["alignment"]).reshape(-1, 1)
+    uniformnity_history = np.array(history["uniformnity"]).reshape(-1, 1)
+
+    full_history = pd.DataFrame(
+        np.concat([loss_history, recall_history, alignment_history, uniformnity_history], axis=1),
+        columns=["loss", "recall@k", "alignment", "uniformnity"]
+    )
+    full_history.to_csv(f"{mode}_history.csv")

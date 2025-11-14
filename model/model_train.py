@@ -29,13 +29,13 @@ def align_loss(x, y, alpha=2):
         y   : Tensor, shape=[bsz, d]
             latents for the other side of positive pairs
     """
-    return (x - y).norm(p=2, dim=1).pow(alpha).mean()
+    return (x - y).norm(p=2, dim=1).pow(alpha).mean().to("cpu").item()
 
 
 # L_uniform = uniform_loss(x) + uniform_loss(y)
 # 두 인코더 각각의 출력 벡터 집합에 대해서 uniformnity를 측정후 더하면 됨
 def uniform_loss(x, t=2): 
-    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log().to("cpu").item()
 
 
 # 실제 추천결과 top5에 실제 정답이 몇 등에 위치하는지를 기반으로한 평가 지표
@@ -403,6 +403,6 @@ if __name__ == "__main__":
 
     full_history = pd.DataFrame(
         np.concat([loss_history, recall_history, alignment_history, uniformnity_history], axis=1),
-        columns=["loss", "recall@k", "alignment", "uniformnity"]
+        columns=["loss", "recall@1", "recall@5", "recall@10", "alignment", "uniformnity"]
     )
-    full_history.to_csv(f"{mode}_history.csv")
+    full_history.to_csv(f"{mode}_history.csv", index=False)

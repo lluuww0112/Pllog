@@ -82,8 +82,6 @@ def calculate_recall(A: torch.Tensor, B: torch.Tensor, k_values: list = [1, 5, 1
 
 
 
-
-
 with open("config.json", "r") as file:
     config = json.load(file)
 
@@ -291,9 +289,6 @@ class Train:
 
         self.diary_encoder.to(self.device)
         self.lyric_encoder.to(self.device)
-        self.diary_encoder.train()
-        self.lyric_encoder.train()
-        
         
         length = len(self.dataloader)
 
@@ -309,9 +304,15 @@ class Train:
         )
         
         loss_history = []
+        recall_history = []
+        alignment_history = []
+        uniformnity_history = []
         for epoch in range(self.epochs): 
             total_loss = 0
-            
+            # train mode setting
+            self.diary_encoder.train()
+            self.lyric_encoder.train()
+
             tqdm_bar = tqdm(self.dataloader, desc=f"Epoch {epoch + 1}/{self.epochs}")
             for batch in tqdm_bar:
                 # tokenzing
@@ -344,9 +345,28 @@ class Train:
                 current_lr = self.optimizer.param_groups[0]['lr']
                 tqdm_bar.set_postfix(loss=f"{batch_loss : .4f}", current_lr=f"{current_lr}")
 
+            # eval Mode Set (recall@K, alignment, uniformnity)
+            self.diary_encoder.eval()
+            self.lyric_encoder.eval()
+
+            with torch.no_grad():
+                diary_norm_vec = self.diary_encoder.encode()
+                lyric_norm_vec = self.lyric_encoder.encode()
+
+                recalls = calculate_recall(diary_norm_vec, lyric_norm_vec)
+                alignment = align_loss(diary_norm_vec, lyric_norm_vec)
+                uniformnity = (uniform_loss(diary_norm_vec) + uniform_loss(lyric_norm_vec)) / 2
+
+                
+            recall_history.append(recalls)
+            alignment_history.append(alignment)
+            uniformnity_history.append(uniformnity)
+
             mean_loss = total_loss / length
             loss_history.append(mean_loss.item())
             print(f"Epoch {epoch + 1} / {self.epochs} Loss : {mean_loss}")
+
+            
 
 
         print("Train Completed")
@@ -354,7 +374,12 @@ class Train:
         torch.save(self.lyric_encoder, f"./model_save/{lyric_encoder_name}.pth")
         print("Model saved")
 
-        return loss_history
+        return {
+            "loss_history" : loss_history,
+            "recall_history" : recall_history,
+            "alignment_history" : alignment_history,
+            "uniformnity_history" : uniformnity_history
+        }
     
 
 
@@ -362,11 +387,14 @@ if __name__ == "__main__":
     diaryEncoder = DiaryEncoder()
     lyricEncoder = LyricEncder()
 
+    diaryName = "diaryEncoder"
+    lyricName = "lyricEncoder"
+
     trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData)
-    loss_history = trainner.full_train(
+    history = trainner.full_train(
         diary_encoder_name="diaryEncoder",
         lyric_encoder_name="lyricEncoder",
     )
 
     df = pd.DataFrame(np.array(loss_history))
-    df.to_csv("loss_history.csv")
+    df.to_csv("history.csv")

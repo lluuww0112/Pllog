@@ -386,7 +386,7 @@ if __name__ == "__main__":
     diaryEncoder = DiaryEncoder()
     lyricEncoder = LyricEncder()
 
-    mode = "Attn"
+    mode = "Cross"
     diaryName = "diaryEncoder"
     lyricName = "lyricEncoder"
 

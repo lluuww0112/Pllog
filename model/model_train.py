@@ -19,7 +19,6 @@ from dataload import DiaryLyricData
 
 
 
-
 # 각 pair의 벡터가 얼마자 잘 정렬(가깝게)되어 있는가?
 def align_loss(x, y, alpha=2): 
     """
@@ -30,13 +29,13 @@ def align_loss(x, y, alpha=2):
         y   : Tensor, shape=[bsz, d]
             latents for the other side of positive pairs
     """
-    return (x - y).norm(p=2, dim=1).pow(alpha).mean()
+    return (x - y).norm(p=2, dim=1).pow(alpha).mean().to("cpu").item()
 
 
 # L_uniform = uniform_loss(x) + uniform_loss(y)
 # 두 인코더 각각의 출력 벡터 집합에 대해서 uniformnity를 측정후 더하면 됨
 def uniform_loss(x, t=2): 
-    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log()
+    return torch.pdist(x, p=2).pow(2).mul(-t).exp().mean().log().to("cpu").item()
 
 
 # 실제 추천결과 top5에 실제 정답이 몇 등에 위치하는지를 기반으로한 평가 지표
@@ -53,7 +52,7 @@ def calculate_recall(A: torch.Tensor, B: torch.Tensor, k_values: list = [1, 5, 1
         k_values (list): R@K를 계산할 K값들의 리스트
 
     Returns:
-        dict: K값별 Recall 점수를 담은 딕셔너리 (예: {"R@1": 0.5, "R@5": 0.8})
+        dict: K값별 Recall 점수를 담은 리스트 (예: [0.5, 0.7, 0.8] 순서대로 R@1, R@5, R@10을 의미)
     """
     
     N = A.size(0)
@@ -79,9 +78,7 @@ def calculate_recall(A: torch.Tensor, B: torch.Tensor, k_values: list = [1, 5, 1
         # (정답 수 / 전체 쿼리 수)
         recalls[f"R@{k}"] = correct_at_k / N
 
-    return recalls
-
-
+    return [score for k, score in recalls.items()]
 
 
 with open("config.json", "r") as file:
@@ -291,9 +288,6 @@ class Train:
 
         self.diary_encoder.to(self.device)
         self.lyric_encoder.to(self.device)
-        self.diary_encoder.train()
-        self.lyric_encoder.train()
-        
         
         length = len(self.dataloader)
 
@@ -309,9 +303,15 @@ class Train:
         )
         
         loss_history = []
+        recall_history = []
+        alignment_history = []
+        uniformnity_history = []
         for epoch in range(self.epochs): 
             total_loss = 0
-            
+            # train mode setting
+            self.diary_encoder.train()
+            self.lyric_encoder.train()
+
             tqdm_bar = tqdm(self.dataloader, desc=f"Epoch {epoch + 1}/{self.epochs}")
             for batch in tqdm_bar:
                 # tokenzing
@@ -344,6 +344,26 @@ class Train:
                 current_lr = self.optimizer.param_groups[0]['lr']
                 tqdm_bar.set_postfix(loss=f"{batch_loss : .4f}", current_lr=f"{current_lr}")
 
+            # eval Mode Set (recall@K, alignment, uniformnity)
+            self.diary_encoder.eval()
+            self.lyric_encoder.eval()
+
+            diaries = list(DiaryLyricData[:]["diary"])
+            lyrics = list(DiaryLyricData[:]["lyric"])
+            
+            with torch.no_grad():
+                _, diary_norm_vec = self.diary_encoder.encode(diaries)
+                lyric_norm_vec = self.lyric_encoder.encode(lyrics)
+
+                recalls = calculate_recall(diary_norm_vec, lyric_norm_vec)
+                alignment = align_loss(diary_norm_vec, lyric_norm_vec)
+                uniformnity = (uniform_loss(diary_norm_vec) + uniform_loss(lyric_norm_vec)) / 2
+
+                
+            recall_history.append(recalls)
+            alignment_history.append(alignment)
+            uniformnity_history.append(uniformnity)
+
             mean_loss = total_loss / length
             loss_history.append(mean_loss.item())
             print(f"Epoch {epoch + 1} / {self.epochs} Loss : {mean_loss}")
@@ -354,19 +374,35 @@ class Train:
         torch.save(self.lyric_encoder, f"./model_save/{lyric_encoder_name}.pth")
         print("Model saved")
 
-        return loss_history
-    
+        return {
+            "loss" : loss_history,
+            "recall" : recall_history,
+            "alignment" : alignment_history,
+            "uniformnity" : uniformnity_history
+        }
 
 
 if __name__ == "__main__":
     diaryEncoder = DiaryEncoder()
     lyricEncoder = LyricEncder()
 
+    mode = "Attn"
+    diaryName = "diaryEncoder"
+    lyricName = "lyricEncoder"
+
     trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData)
-    loss_history = trainner.full_train(
-        diary_encoder_name="Cross_diaryEncoder",
-        lyric_encoder_name="Cross_lyricEncoder",
+    history = trainner.full_train(
+        diary_encoder_name=diaryName,
+        lyric_encoder_name=lyricName,
     )
 
-    df = pd.DataFrame(np.array(loss_history))
-    df.to_csv("loss_history.csv")
+    loss_history = np.array(history["loss"]).reshape(-1, 1)
+    recall_history = np.array(history["recall"]).reshape(-1, 3)
+    alignment_history = np.array(history["alignment"]).reshape(-1, 1)
+    uniformnity_history = np.array(history["uniformnity"]).reshape(-1, 1)
+
+    full_history = pd.DataFrame(
+        np.concat([loss_history, recall_history, alignment_history, uniformnity_history], axis=1),
+        columns=["loss", "recall@1", "recall@5", "recall@10", "alignment", "uniformnity"]
+    )
+    full_history.to_csv(f"{mode}_history.csv", index=False)

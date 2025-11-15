@@ -387,8 +387,8 @@ if __name__ == "__main__":
     lyricEncoder = LyricEncder()
 
     mode = "Cross"
-    diaryName = "diaryEncoder"
-    lyricName = "lyricEncoder"
+    diaryName = f"{mode}_diaryEncoder"
+    lyricName = f"{mode}_lyricEncoder"
 
     trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData)
     history = trainner.full_train(

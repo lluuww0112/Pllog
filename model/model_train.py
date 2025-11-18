@@ -204,7 +204,6 @@ class Train:
         optimizer_name = optimizer_name.lower()
         params = list(self.diary_encoder.parameters()) + list(self.lyric_encoder.parameters())
 
-
         if optimizer_name == "adam":
             print(f"Optimizer: Adam, Learning Rate: {self.lr}")
             return Adam(params, lr=self.lr)
@@ -424,12 +423,18 @@ if __name__ == "__main__":
     )
 
     loss_history = np.array(history["loss"]).reshape(-1, 1)
+    
     recall_history = np.array(history["recall"]).reshape(-1, 3)
     alignment_history = np.array(history["alignment"]).reshape(-1, 1)
     uniformnity_history = np.array(history["uniformnity"]).reshape(-1, 1)
+    
+    val_recall_history = np.array(history["val_recall"]).reshape(-1, 3)
+    val_alignment_history = np.array(history["val_alignment"]).reshape(-1, 1)
+    val_uniformnity_history = np.array(history["val_uniformnity"]).reshape(-1, 1)
+     
 
     full_history = pd.DataFrame(
-        np.concat([loss_history, recall_history, alignment_history, uniformnity_history], axis=1),
-        columns=["loss", "recall@1", "recall@5", "recall@10", "alignment", "uniformnity"]
+        np.concat([loss_history, recall_history, alignment_history, uniformnity_history, val_recall_history, val_alignment_history, val_uniformnity_history], axis=1),
+        columns=["loss", "recall@1", "recall@5", "recall@10", "alignment", "uniformnity", "val_recall@1", "val_recall@5", "val_recall@10", "val_alignment", "val_uniformnity"]
     )
     full_history.to_csv(f"{mode}_history.csv", index=False)

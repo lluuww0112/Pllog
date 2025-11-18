@@ -32,8 +32,14 @@ class Diary_Lyric_dataset(Dataset):
     
 
 train_data = pd.read_csv("./data/train.csv")
-diaries = train_data["diary"]
-lyrics = train_data["lyric"]
-emotions = train_data["emotion"]
+train_diaries = train_data["diary"]
+train_lyrics = train_data["lyric"]
+train_emotions = train_data["emotion"]
+DiaryLyricData = Diary_Lyric_dataset(train_diaries, train_lyrics, train_emotions)
 
-DiaryLyricData = Diary_Lyric_dataset(diaries, lyrics, emotions)
+test_data = pd.read_csv("./data/test.csv")
+test_diaries = test_data["diary"]
+test_lyrics = test_data["lyric"]
+test_emotions = test_data["emotion"]
+DiaryLyricData_Test = Diary_Lyric_dataset(test_diaries, test_lyrics, test_emotions)
+

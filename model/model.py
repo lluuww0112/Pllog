@@ -120,10 +120,17 @@ class DiaryEncoder(nn.Module):
         sentiment_header_logit = self.diary_sentiment_header(sentiment_cls)
 
         # abstract forwarding
-        abstract_output = self.diary_abstract_encoder.forward(abstract_input)[0] # shape (batch, 1, emb_dim)
+        abstract_output = self.diary_abstract_encoder.forward(abstract_input)[0] # shape (batch, seq_len, emb_dim)
 
         # latent forwarding
-        final_output = self.latent_encoder(abstract_output, sentiment_cls)
+        final_output = self.latent_encoder(
+            tgt=abstract_output, 
+            memory=sentiment_cls,
+            tgt_mask=None,
+            memory_mask=None,
+            tgt_key_padding_mask=None,
+            memory_key_padding_mask=None
+        )
         final_cls = self.latent_header(final_output[:,0,:])
 
         sentiment_logit = sentiment_header_logit.squeeze()
@@ -151,6 +158,7 @@ class DiaryEncoder(nn.Module):
         norm_diary_cls = nn.functional.normalize(diary_cls, dim=-1, eps=1e-12) # normalize for vector searching
         return emotion, norm_diary_cls
         
+
 
 
 class LyricEncder(nn.Module):
@@ -208,18 +216,16 @@ class LyricEncder(nn.Module):
         return norm_lyric_cls
 
 
-
 # ============================================ test ============================================
 
 if __name__ == "__main__":
-    device = "mps" if torch.mps.is_available() else "cpu"
+    device = "cpu"
     print(device)
     model = DiaryEncoder().to(device)
-
-    x = ["나는 바보 멍청이 i love" for _ in range(1)]
+    model.device = device
     
     start = time.time()
-    emotion, final_cls = model.encode(x)
+    emotion, final_cls = model.encode(["안녕", "나는 문어"])
     end = time.time()
     print(end - start)
 

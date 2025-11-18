@@ -15,7 +15,7 @@ import pandas as pd
 import numpy as np
 
 from model import DiaryEncoder, LyricEncder
-from dataload import DiaryLyricData
+from dataload import DiaryLyricData, DiaryLyricData_Test
 
 
 
@@ -204,7 +204,6 @@ class Train:
         optimizer_name = optimizer_name.lower()
         params = list(self.diary_encoder.parameters()) + list(self.lyric_encoder.parameters())
 
-
         if optimizer_name == "adam":
             print(f"Optimizer: Adam, Learning Rate: {self.lr}")
             return Adam(params, lr=self.lr)
@@ -306,6 +305,11 @@ class Train:
         recall_history = []
         alignment_history = []
         uniformnity_history = []
+
+        val_recall_history = []
+        val_alignment_history = []
+        val_uniformnity_history = []
+
         for epoch in range(self.epochs): 
             total_loss = 0
             # train mode setting
@@ -351,7 +355,12 @@ class Train:
             diaries = list(DiaryLyricData[:]["diary"])
             lyrics = list(DiaryLyricData[:]["lyric"])
             
+            val_diaries = list(DiaryLyricData_Test[:]["diary"])
+            val_lyrics = list(DiaryLyricData_Test[:]["lyric"])
+            
+
             with torch.no_grad():
+                # train metric
                 _, diary_norm_vec = self.diary_encoder.encode(diaries)
                 lyric_norm_vec = self.lyric_encoder.encode(lyrics)
 
@@ -360,9 +369,23 @@ class Train:
                 uniformnity = (uniform_loss(diary_norm_vec) + uniform_loss(lyric_norm_vec)) / 2
 
                 
+                # val metric
+                _, diary_norm_vec = self.diary_encoder.encode(val_diaries)
+                lyric_norm_vec = self.lyric_encoder.encode(val_lyrics)
+                
+                val_recalls = calculate_recall(diary_norm_vec, lyric_norm_vec)
+                val_alignment = align_loss(diary_norm_vec, lyric_norm_vec)
+                val_uniformnity = (uniform_loss(diary_norm_vec) + uniform_loss(lyric_norm_vec)) / 2
+
+
+                
             recall_history.append(recalls)
             alignment_history.append(alignment)
             uniformnity_history.append(uniformnity)
+
+            val_recall_history.append(val_recalls)
+            val_alignment_history.append(val_alignment)
+            val_uniformnity_history.append(val_uniformnity)
 
             mean_loss = total_loss / length
             loss_history.append(mean_loss.item())
@@ -378,7 +401,10 @@ class Train:
             "loss" : loss_history,
             "recall" : recall_history,
             "alignment" : alignment_history,
-            "uniformnity" : uniformnity_history
+            "uniformnity" : uniformnity_history,
+            "val_recall" : val_recall_history,
+            "val_alignment" : val_alignment_history,
+            "val_uniformnity" : val_uniformnity_history
         }
 
 
@@ -386,9 +412,9 @@ if __name__ == "__main__":
     diaryEncoder = DiaryEncoder()
     lyricEncoder = LyricEncder()
 
-    mode = "Attn"
-    diaryName = "diaryEncoder"
-    lyricName = "lyricEncoder"
+    mode = "Cross"
+    diaryName = f"{mode}_diaryEncoder"
+    lyricName = f"{mode}_lyricEncoder"
 
     trainner = Train(diaryEncoder, lyricEncoder, DiaryLyricData)
     history = trainner.full_train(
@@ -397,12 +423,18 @@ if __name__ == "__main__":
     )
 
     loss_history = np.array(history["loss"]).reshape(-1, 1)
+    
     recall_history = np.array(history["recall"]).reshape(-1, 3)
     alignment_history = np.array(history["alignment"]).reshape(-1, 1)
     uniformnity_history = np.array(history["uniformnity"]).reshape(-1, 1)
+    
+    val_recall_history = np.array(history["val_recall"]).reshape(-1, 3)
+    val_alignment_history = np.array(history["val_alignment"]).reshape(-1, 1)
+    val_uniformnity_history = np.array(history["val_uniformnity"]).reshape(-1, 1)
+     
 
     full_history = pd.DataFrame(
-        np.concat([loss_history, recall_history, alignment_history, uniformnity_history], axis=1),
-        columns=["loss", "recall@1", "recall@5", "recall@10", "alignment", "uniformnity"]
+        np.concat([loss_history, recall_history, alignment_history, uniformnity_history, val_recall_history, val_alignment_history, val_uniformnity_history], axis=1),
+        columns=["loss", "recall@1", "recall@5", "recall@10", "alignment", "uniformnity", "val_recall@1", "val_recall@5", "val_recall@10", "val_alignment", "val_uniformnity"]
     )
     full_history.to_csv(f"{mode}_history.csv", index=False)

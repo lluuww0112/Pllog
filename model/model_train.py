@@ -412,7 +412,7 @@ if __name__ == "__main__":
     diaryEncoder = DiaryEncoder()
     lyricEncoder = LyricEncder()
 
-    mode = "Cross"
+    mode = "Attn"
     diaryName = f"{mode}_diaryEncoder"
     lyricName = f"{mode}_lyricEncoder"
 

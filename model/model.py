@@ -215,9 +215,10 @@ class LyricEncder(nn.Module):
 # ============================================ test ============================================
 
 if __name__ == "__main__":
-    device = "mps" if torch.mps.is_available() else "cpu"
+    device = "cpu"
     print(device)
     model = DiaryEncoder().to(device)
+    model.device = device
 
     x = ["나는 바보 멍청이 i love" for _ in range(1)]
     

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.quantization as quant
 
 from transformers import AutoModel, AutoTokenizer
 import os

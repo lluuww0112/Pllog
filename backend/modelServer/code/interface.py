@@ -50,7 +50,7 @@ TOP_K = 5
 # Vector Base definition (demo)
 # you have to use real data for service
 _base_dir = os.path.dirname(__file__)
-_vec_base_path = os.path.join(_base_dir, "data", "vec_index.pkl")
+_vec_base_path = os.path.join(_base_dir, "vec_index.pkl")
 with open(_vec_base_path, "rb") as f:
     vec_base = pickle.load(f)
 

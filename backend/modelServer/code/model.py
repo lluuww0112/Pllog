@@ -81,6 +81,7 @@ class DiaryEncoder(nn.Module):
             encoder_layer=layers,
             num_layers=latent_layer_num
         )
+        
         # latent header
         self.latent_header = nn.Sequential(*[
             nn.Linear(in_features=emb_dim, out_features=emb_dim, bias=True),
@@ -128,8 +129,8 @@ class DiaryEncoder(nn.Module):
         final_output = self.latent_encoder(latent_encoder_input)  # shape (batch, seq_len + 1, emb_dim)
         final_cls = self.latent_header(final_output[:, 0, :])
 
-        sentiment_logit = sentiment_header_logit.squeeze()
-        diary_cls = final_cls.squeeze()
+        sentiment_logit = sentiment_header_logit.squeeze(1)
+        diary_cls = final_cls
 
         return sentiment_logit, diary_cls
     
@@ -139,8 +140,10 @@ class DiaryEncoder(nn.Module):
             x,
             return_tensors="pt",
             add_special_tokens=True,
-            padding=True
-        )["input_ids"]
+            padding=True,
+            truncation=True,
+            max_length=512
+        )["input_ids"].to(self.device)
         
         logit, diary_cls = self.forward(tokenized, debug=debug)
         pred_label = torch.argmax(logit, dim=-1).long()
@@ -160,6 +163,8 @@ class LyricEncder(nn.Module):
                 ):
         super().__init__()
 
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        
         # tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(encoder)
         
@@ -196,8 +201,10 @@ class LyricEncder(nn.Module):
             x,
             return_tensors="pt",
             add_special_tokens=True,
-            padding=True
-        )["input_ids"]
+            padding=True,
+            truncation=True,
+            max_length=512
+        )["input_ids"].to(self.device)
 
         lyric_cls = self.forward(tokenized, debug=debug)
         norm_lyric_cls = nn.functional.normalize(lyric_cls, dim=-1, eps=1e-12) # normalize for vector searching
@@ -208,9 +215,10 @@ class LyricEncder(nn.Module):
 # ============================================ test ============================================
 
 if __name__ == "__main__":
-    device = "mps" if torch.mps.is_available() else "cpu"
+    device = "cpu"
     print(device)
     model = DiaryEncoder().to(device)
+    model.device = device
 
     x = ["나는 바보 멍청이 i love" for _ in range(1)]
     

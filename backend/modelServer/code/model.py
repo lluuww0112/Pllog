@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.quantization as quant
 
 from transformers import AutoModel, AutoTokenizer
 import os
@@ -69,18 +68,19 @@ class DiaryEncoder(nn.Module):
         ])
 
 
-        # latent encoder
-        layers = nn.TransformerEncoderLayer(
+        # latent encoder (cross Attn)
+        layers = nn.TransformerDecoderLayer(
             d_model=emb_dim,
             nhead=latent_header_num,
             dim_feedforward=ffn_dim,
             dropout=dropout,
             batch_first=True
         )
-        self.latent_encoder = nn.TransformerEncoder(
-            encoder_layer=layers,
+        self.latent_encoder = nn.TransformerDecoder(
+            decoder_layer=layers,
             num_layers=latent_layer_num
         )
+
         # latent header
         self.latent_header = nn.Sequential(*[
             nn.Linear(in_features=emb_dim, out_features=emb_dim, bias=True),
@@ -119,14 +119,18 @@ class DiaryEncoder(nn.Module):
         sentiment_header_logit = self.diary_sentiment_header(sentiment_cls)
 
         # abstract forwarding
-        abstract_output = self.diary_abstract_encoder.forward(abstract_input)[0] # shape (batch, 1, emb_dim)
+        abstract_output = self.diary_abstract_encoder.forward(abstract_input)[0] # shape (batch, seq_len, emb_dim)
 
-        # concat [setiment_cls, abstract_hidden]
-        latent_encoder_input = torch.cat([sentiment_cls, abstract_output], dim=1) # shape (batch, seq_len + 1, emb_dim)
-        
         # latent forwarding
-        final_output = self.latent_encoder(latent_encoder_input)  # shape (batch, seq_len + 1, emb_dim)
-        final_cls = self.latent_header(final_output[:, 0, :])
+        final_output = self.latent_encoder(
+            tgt=abstract_output, 
+            memory=sentiment_cls,
+            tgt_mask=None,
+            memory_mask=None,
+            tgt_key_padding_mask=None,
+            memory_key_padding_mask=None
+        )
+        final_cls = self.latent_header(final_output[:,0,:])
 
         sentiment_logit = sentiment_header_logit.squeeze()
         diary_cls = final_cls.squeeze()
@@ -139,8 +143,10 @@ class DiaryEncoder(nn.Module):
             x,
             return_tensors="pt",
             add_special_tokens=True,
-            padding=True
-        )["input_ids"]
+            padding=True,
+            truncation=True,
+            max_length=512
+        )["input_ids"].to(self.device)
         
         logit, diary_cls = self.forward(tokenized, debug=debug)
         pred_label = torch.argmax(logit, dim=-1).long()
@@ -153,6 +159,7 @@ class DiaryEncoder(nn.Module):
         
 
 
+
 class LyricEncder(nn.Module):
     def __init__(self, 
                  encoder : str = LYRIC_ENCODER,
@@ -160,6 +167,8 @@ class LyricEncder(nn.Module):
                 ):
         super().__init__()
 
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        
         # tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(encoder)
         
@@ -196,26 +205,26 @@ class LyricEncder(nn.Module):
             x,
             return_tensors="pt",
             add_special_tokens=True,
-            padding=True
-        )["input_ids"]
+            padding=True,
+            truncation=True,
+            max_length=512
+        )["input_ids"].to(self.device)
 
         lyric_cls = self.forward(tokenized, debug=debug)
         norm_lyric_cls = nn.functional.normalize(lyric_cls, dim=-1, eps=1e-12) # normalize for vector searching
         return norm_lyric_cls
 
 
-
 # ============================================ test ============================================
 
 if __name__ == "__main__":
-    device = "mps" if torch.mps.is_available() else "cpu"
+    device = "cpu"
     print(device)
     model = DiaryEncoder().to(device)
-
-    x = ["나는 바보 멍청이 i love" for _ in range(1)]
+    model.device = device
     
     start = time.time()
-    emotion, final_cls = model.encode(x)
+    emotion, final_cls = model.encode(["안녕", "나는 문어"])
     end = time.time()
     print(end - start)
 

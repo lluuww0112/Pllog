@@ -86,14 +86,15 @@ class model:
 class VectorBase:
     def search_vector(vector : torch.Tensor, top_k : int = 5):
         vector = vector.view(1, -1)
-        sim_mat = F.cosine_similarity(vec_base, vector).view(-1, 1)
-        _, idx = torch.topk(sim_mat, dim=0, k=top_k)
-        idx = (idx.squeeze() + 1).tolist()
-        print(idx)
+        # sim_mat = F.cosine_similarity(vec_base, vector).view(-1, 1)
+        # _, idx = torch.topk(sim_mat, dim=0, k=top_k)
+        # idx = (idx.squeeze() + 1).tolist() # mysql의 auto increment는 1부터 시작이기 때문에 여기서 인덱스를 통일
+        # return idx
         
-        # _, indices = index.search(vector, top_k) # distances, indexes
-        # return indices + 1 # mysql의 auto increment는 1부터 시작이기 때문에 여기서 인덱스를 통일
-        return idx
+        vector = np.array(vector.tolist())
+        _, indices = index.search(vector, top_k) # distances, indexes
+        return (indices + 1 ).tolist()[0]
+        
 
     def add_vector(vectors : np.array):
         try:

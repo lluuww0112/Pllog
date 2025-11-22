@@ -30,4 +30,5 @@
 ```
 
 # Model Arch
-<img width="2342" height="1157" alt="Image" src="https://github.com/user-attachments/assets/d268dc51-bd25-4b45-a2dd-7e7e3fce94a0" />
+<img width="2342" height="1157" alt="Image" src="https://github.com/user-attachments/assets/27afddbf-10b2-4477-9ea3-46324c0a579c" />
+

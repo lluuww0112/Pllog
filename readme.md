@@ -8,3 +8,6 @@
 
 ## Model Arch
 ![Image](https://github.com/user-attachments/assets/f9941193-f234-48e8-9582-331ffc8527ff)
+
+## Experiment
+https://quiver-eel-7b7.notion.site/Experiment-2b023a787e6180ffba07c346bf4dbc26

@@ -11,3 +11,6 @@
 
 ## Experiment
 https://quiver-eel-7b7.notion.site/Experiment-2b023a787e6180ffba07c346bf4dbc26
+
+## Model Save
+https://drive.google.com/drive/folders/1skYv-UKOQmlq27uQHfsjMy12WOYXH8Ri?usp=sharing

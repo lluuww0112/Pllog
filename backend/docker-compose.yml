@@ -18,9 +18,6 @@ services:
     volumes:
       - "./DB/conf.d:/etc/mysql/conf.d"
       - "./DB/mysql:/var/lib/mysql" # db 저장 내용 볼륨 유지
-
-      # 트리거를 정의하는 경우 다음을 사용
-      # - "./db/structure:/docker-entrypoint-initdb.d"
     env_file:
       - DB/.env
     container_name: DB
